@@ -236,6 +236,16 @@ class Session {
     sendForwardMessage(messageId, sessionId, sessionType,content){
         return RNNeteaseIm.sendForwardMessage(messageId, sessionId, sessionType, content)
     }
+
+    /**
+     * 发送文件类型消息
+     * @param {string} file   文件路径
+     * @param {string} displayName  文件名称
+     */
+    sendFileMessage(file, displayName){
+        return RNNeteaseIm.sendFileMessage(file, displayName)
+    }
+
     /**
      * 消息撤回
      * @param messageId

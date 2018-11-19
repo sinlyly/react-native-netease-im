@@ -249,6 +249,15 @@
                     NSLog(@"视频下载进度%f",progress);
                 }];
             }
+        }else if(message.messageType == NIMMessageTypeFile){  //update_by_sin add file conversation
+             [dic setObject:@"file" forKey:@"msgType"];
+             NIMFileObject *fileObject = message.messageObject;
+             NSMutableDictionary *fileObj = [NSMutableDictionary dictionary];
+             [fileObj setObject:[NSString stringWithFormat:@"%@",fileObject.displayName ] forKey:@"name"];
+             [fileObj setObject:[NSString stringWithFormat:@"%@", fileObject.url ] forKey:@"path"];
+             [fileObj setObject:[NSString stringWithFormat:@"%@", [self getFileSizeString:fileObject.fileLength] ] forKey:@"size"];
+             [fileObj setObject:[NSString stringWithFormat:@"%@",  [self getExtWithFileName:fileObject.displayName] ] forKey:@"ext"];
+             [dic setObject:fileObj forKey:@"extend"];
         }else if(message.messageType == NIMMessageTypeLocation){
             [dic setObject:@"location" forKey:@"msgType"];
             NIMLocationObject *object = message.messageObject;
@@ -442,6 +451,23 @@
         }
 //    }];
 }
+
+//发送文件 update_by_sin
+-(void)sendFileMessage:(NSString *)filePath name:(NSString *)name{
+    NIMMessage *message;
+    if ([filePath hasPrefix:@"file:///private"]) {
+        filePath = [filePath stringByReplacingOccurrencesOfString:@"file:///private" withString:@""];
+    }
+  //  filePath = @"/tmp/com.wizloop.SGMShare-Inbox/%E6%96%B0%E7%89%88%E5%9E%82%E7%9B%B4%E5%B9%B3%E5%8F%B0%E7%9B%B8%E5%85%B3%E5%8F%8D%E9%A6%88.pages";
+    message = [NIMMessageMaker msgWithFile:filePath andName:name andeSession:_session];
+    if ([self isFriendToSendMessage:message]) {
+        NSError *err = nil;
+        [[NIMSDK sharedSDK].chatManager sendMessage:message toSession:_session error:&err];
+        NSLog(@"*********** the error msg:%@",[err localizedDescription]);
+    }
+}
+
+
 
 //发送自定义消息
 -(void)sendCustomMessage:(NSDictionary *)dataDict{
@@ -939,6 +965,15 @@
                 NSLog(@"----------下载进度%f   dic2:%@",progress,dic2);
             }];
         }
+    }else if(message.messageType == NIMMessageTypeFile){
+        [dic2 setObject:@"file" forKey:@"msgType"];
+        NIMFileObject *fileObject = message.messageObject;
+        NSMutableDictionary *fileObj = [NSMutableDictionary dictionary];
+        [fileObj setObject:[NSString stringWithFormat:@"%@",fileObject.displayName ] forKey:@"name"];
+        [fileObj setObject:[NSString stringWithFormat:@"%@", fileObject.url ] forKey:@"path"];
+        [fileObj setObject:[NSString stringWithFormat:@"%@", [self getFileSizeString:fileObject.fileLength] ] forKey:@"size"];
+        [fileObj setObject:[NSString stringWithFormat:@"%@",  [self getExtWithFileName:fileObject.displayName] ] forKey:@"ext"];
+        [dic2 setObject:fileObj forKey:@"extend"];
     }else if(message.messageType == NIMMessageTypeLocation){
         [dic2 setObject:@"location" forKey:@"msgType"];
         NIMLocationObject *object = message.messageObject;
@@ -1242,33 +1277,78 @@
 }
 //判断是不是好友
 - (BOOL)isFriendToSendMessage:(NIMMessage *)message{
-    //update_by_sin
-//     if (_session.sessionType == NIMSessionTypeP2P) {//点对点
-//         NSString *strSessionId = _session.sessionId;
-//         if ([[NIMSDK sharedSDK].userManager isMyFriend:strSessionId]) {//判断是否为自己好友
-//             return YES;
-//         }else{
-//             message.localExt = @{@"isFriend":@"NO"};
-//             [[NIMSDK sharedSDK].conversationManager saveMessage:message forSession:_session completion:nil];
-//             NSString *strSessionName = @"";
-//             NIMUser *user = [[NIMSDK sharedSDK].userManager userInfo:strSessionId];
-//             if ([user.alias length]) {
-//                 strSessionName = user.alias;
-//             }else{
-//                 NIMUserInfo *userInfo = user.userInfo;
-//                 strSessionName = userInfo.nickName;
-//             }
-            
-//             NSString * tip = [NSString stringWithFormat:@"%@开启了朋友验证，你还不是他（她）朋友。请先发送朋友验证请求，对方验证通过后，才能聊天。发送朋友验证",strSessionName];
-//             NIMMessage *tipMessage = [self msgWithTip:tip];
-//             tipMessage.timestamp = message.timestamp+1;
-//             [[NIMSDK sharedSDK].conversationManager saveMessage:tipMessage forSession:_session completion:nil];
-//             return NO;
-//         }
-//     }else{
-//         return YES;
-//     }
+    //be_update_by_sin remove the friend validate;
+    if (_session.sessionType == NIMSessionTypeP2P) {//点对点
+        NSString *strSessionId = _session.sessionId;
+        if ([[NIMSDK sharedSDK].userManager isMyFriend:strSessionId]) {//判断是否为自己好友
+            return YES;
+        }else{
+            message.localExt = @{@"isFriend":@"NO"};
+            [[NIMSDK sharedSDK].conversationManager saveMessage:message forSession:_session completion:nil];
+            NSString *strSessionName = @"";
+            NIMUser *user = [[NIMSDK sharedSDK].userManager userInfo:strSessionId];
+            if ([user.alias length]) {
+                strSessionName = user.alias;
+            }else{
+                NIMUserInfo *userInfo = user.userInfo;
+                strSessionName = userInfo.nickName;
+            }
+
+            NSString * tip = [NSString stringWithFormat:@"%@开启了朋友验证，你还不是他（她）朋友。请先发送朋友验证请求，对方验证通过后，才能聊天。发送朋友验证",strSessionName];
+            NIMMessage *tipMessage = [self msgWithTip:tip];
+            tipMessage.timestamp = message.timestamp+1;
+            [[NIMSDK sharedSDK].conversationManager saveMessage:tipMessage forSession:_session completion:nil];
+            return NO;
+        }
+    }else{
+        return YES;
+    }
     return YES;
 }
+
+//换算文件大小显示值 //update_by_sin
+- (NSString *)getFileSizeString:(long)fileSize{
+    NSString *fileSize_str = @"0 KB";
+    if(fileSize != 0){
+        NSDecimalNumber *gb_size = [[NSDecimalNumber alloc] initWithLong:1024 * 1024 * 1024];
+        NSDecimalNumber *mb_size = [[NSDecimalNumber alloc] initWithLong:1024 * 1024];
+        NSDecimalNumber *kb_size = [[NSDecimalNumber alloc] initWithLong:1024];
+        
+        NSDecimalNumber *fileSize_big = [[NSDecimalNumber alloc] initWithLong:fileSize];
+        NSDecimalNumberHandler *roundUp = [NSDecimalNumberHandler
+                                           decimalNumberHandlerWithRoundingMode:NSRoundUp
+                                           scale:2
+                                           raiseOnExactness:NO
+                                           raiseOnOverflow:NO
+                                           raiseOnUnderflow:NO
+                                           raiseOnDivideByZero:YES];
+        
+        NSDecimalNumber *gb_divide = [fileSize_big decimalNumberByDividingBy:gb_size withBehavior:roundUp];
+        NSDecimalNumber *mb_divide = [fileSize_big decimalNumberByDividingBy:mb_size withBehavior:roundUp];
+        NSDecimalNumber *kb_divide = [fileSize_big decimalNumberByDividingBy:kb_size withBehavior:roundUp];
+        
+        if([gb_divide doubleValue]> 1){
+            fileSize_str = [NSString stringWithFormat:@"%@ GB",[gb_divide stringValue]];
+        }else if([mb_divide doubleValue] > 1){
+            fileSize_str = [NSString stringWithFormat:@"%@ MB",[mb_divide stringValue]];
+        }else if([kb_divide doubleValue] > 1){
+            fileSize_str = [NSString stringWithFormat:@"%@ KB",[kb_divide stringValue]];
+        }else{
+            fileSize_str = [NSString stringWithFormat:@"%ld B",fileSize];
+        }
+    }
+    return fileSize_str;
+}
+
+//根据文件名称获取文件后缀名，后缀名没有时返回空字符 //update_by_sin
+- (NSString *)getExtWithFileName:(NSString *)fileName{
+    NSString *ext_str = @"";
+    NSRange extRange = [fileName rangeOfString:@"."];
+    if(extRange.location != NSNotFound){
+        ext_str = [fileName substringFromIndex:extRange.location + 1];
+    }
+    return ext_str;
+}
+
 
 @end

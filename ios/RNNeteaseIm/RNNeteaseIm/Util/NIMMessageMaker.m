@@ -146,6 +146,18 @@
     return message;
 }
 
+//update_by_sin
++ (NIMMessage*)msgWithFile:(NSString*)filePath andName:(NSString *)name andeSession:(NIMSession *)session
+{
+    NIMFileObject *fileObject = [[NIMFileObject alloc] initWithSourcePath:filePath];
+    fileObject.displayName = name;
+    NIMMessage *message = [[NIMMessage alloc] init];
+    message.messageObject = fileObject;
+    message.apnsContent = @"发来了一个文件";
+    [NIMMessageMaker setupMessagePushBody:message andSession:session];
+    return message;
+}
+
 
 + (NIMMessage*)msgWithLocation:(NIMKitLocationPoint *)locationPoint andeSession:(NIMSession *)session{
     NIMLocationObject *locationObject = [[NIMLocationObject alloc] initWithLatitude:locationPoint.coordinate.latitude

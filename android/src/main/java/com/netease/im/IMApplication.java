@@ -32,6 +32,7 @@ import com.netease.nimlib.sdk.Observer;
 import com.netease.nimlib.sdk.SDKOptions;
 import com.netease.nimlib.sdk.StatusBarNotificationConfig;
 import com.netease.nimlib.sdk.auth.LoginInfo;
+import com.netease.nimlib.sdk.mixpush.MixPushConfig;
 import com.netease.nimlib.sdk.mixpush.MixPushService;
 import com.netease.nimlib.sdk.mixpush.NIMPushClient;
 import com.netease.nimlib.sdk.msg.MessageNotifierCustomization;
@@ -66,6 +67,18 @@ public class IMApplication {
         }
     }
 
+    /**
+     * 华为推送配置
+     */
+    public static class HuaWeiPushConfig {
+        public String certificate;
+
+        public HuaWeiPushConfig(String certificate){
+            this.certificate = certificate;
+        }
+    }
+
+
     // context
     private static Context context;
 
@@ -86,17 +99,14 @@ public class IMApplication {
     private static StatusBarNotificationConfig statusBarNotificationConfig;
     private static boolean DEBUG = false;
 
-    public static void init(Context context, Class mainActivityClass, @DrawableRes int notify_msg_drawable_id, MiPushConfig miPushConfig) {
+    public static void init(Context context, Class mainActivityClass, @DrawableRes int notify_msg_drawable_id, MiPushConfig miPushConfig,HuaWeiPushConfig huaWeiPushConfig) {
         IMApplication.context = context.getApplicationContext();
         IMApplication.mainActivityClass = mainActivityClass;
         IMApplication.notify_msg_drawable_id = notify_msg_drawable_id;
 
-        // 注册小米推送appID 、appKey 以及在云信管理后台添加的小米推送证书名称，该逻辑放在 NIMClient init 之前
-        if (miPushConfig != null) {
-            NIMPushClient.registerMiPush(context, miPushConfig.certificate, miPushConfig.appID, miPushConfig.appKey);
-        }
 
-        NIMClient.init(context, getLoginInfo(), getOptions(context));
+
+        NIMClient.init(context, getLoginInfo(), getOptions(context,miPushConfig,huaWeiPushConfig));
         // crash handler
 //        AppCrashHandler.getInstance(context);
         if (NIMUtil.isMainProcess(IMApplication.context)) {
@@ -156,7 +166,7 @@ public class IMApplication {
         return Environment.getExternalStorageDirectory() + "/" + context.getPackageName() + "/nim";
     }
 
-    private static SDKOptions getOptions(Context context) {
+    private static SDKOptions getOptions(Context context, MiPushConfig miPushConfig,HuaWeiPushConfig huaWeiPushConfig) {
         SDKOptions options = new SDKOptions();
 
         // 如果将新消息通知提醒托管给SDK完成，需要添加以下配置。
@@ -190,7 +200,31 @@ public class IMApplication {
         //teamNotificationMessageMarkUnread 登录选项添加群通知消息是否计入未读数开关
         //sdkStorageRootPath 配置的外置存储缓存根目录
 
+        //注册推送服务
+        registerPushConfig(miPushConfig,huaWeiPushConfig,options);
+
+
         return options;
+    }
+
+    /**
+     * 注册推送服务
+     * @param miPushConfig
+     * @param options
+     */
+    private static void registerPushConfig(MiPushConfig miPushConfig,HuaWeiPushConfig huaWeiPushConfig,SDKOptions options){
+        // 注册小米推送appID 、appKey 以及在云信管理后台添加的小米推送证书名称，该逻辑放在 NIMClient init 之前
+        MixPushConfig config = new MixPushConfig();
+        if (miPushConfig != null) {
+            config.xmAppId = miPushConfig.appID;
+            config.xmAppKey = miPushConfig.appKey;
+            config.xmCertificateName = miPushConfig.certificate;
+        }
+        if(huaWeiPushConfig != null){
+            config.hwCertificateName = huaWeiPushConfig.certificate;
+
+        }
+        options.mixPushConfig = config;
     }
 
     // 这里开发者可以自定义该应用初始的 StatusBarNotificationConfig

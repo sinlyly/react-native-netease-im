@@ -419,7 +419,8 @@ NSMutableArray *_myTeams;
 
 }
 //踢人出群
--(void)removeMember:(NSString *)teamId accounts:(NSArray *)count Succ:(Success)succ Err:(Errors)err{
+-(void)
+:(NSString *)teamId accounts:(NSArray *)count Succ:(Success)succ Err:(Errors)err{
         [[NIMSDK sharedSDK].teamManager kickUsers:count fromTeam:teamId completion:^(NSError * _Nullable error) {
             if (!error) {
                 succ(@"200");

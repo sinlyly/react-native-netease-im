@@ -29,4 +29,6 @@
 
 + (NIMMessage*)msgWithCustomAttachment:(DWCustomAttachment *)attachment andeSession:(NIMSession *)session;
 
++ (NIMMessage*)msgWithFile:(NSString *)filePath andName:(NSString *)name andeSession:(NIMSession *)session;//update_by_sin
+
 @end

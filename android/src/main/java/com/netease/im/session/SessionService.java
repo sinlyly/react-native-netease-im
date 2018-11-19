@@ -764,12 +764,18 @@ public class SessionService {
         sendMessageSelf(message, onSendMessageListener, false);
     }
 
-    public void sendCardMessage(String type, String name, String imgPath, String id, OnSendMessageListener onSendMessageListener) {
-        CustomMessageConfig config = new CustomMessageConfig();
-        CardAttachment attachment = new CardAttachment();
-        name = NimUserInfoCache.getInstance().getUserName(id);
-        attachment.setParams(type, name, imgPath, id);
-        IMMessage message = MessageBuilder.createCustomMessage(sessionId, sessionTypeEnum, "[名片] " + name, attachment, config);
+    /**
+     * 发送文件类型消息
+     * create_by_sin
+     * @param file
+     * @param displayName
+     * @param onSendMessageListener
+     */
+    public void sendFileMessage(String file,  String displayName, OnSendMessageListener onSendMessageListener) {
+        file = Uri.parse(file).getPath();
+        String md5 = TextUtils.isEmpty(displayName) ? MD5.getStreamMD5(file) : displayName;
+        File f = new File(file);
+        IMMessage message = MessageBuilder.createFileMessage(sessionId,sessionTypeEnum,f,md5);
         sendMessageSelf(message, onSendMessageListener, false);
     }
 
@@ -795,6 +801,15 @@ public class SessionService {
         }
         sendMessageSelf(message, onSendMessageListener, false);
         return 2;
+    }
+
+    public void sendCardMessage(String type, String name, String imgPath, String id, OnSendMessageListener onSendMessageListener) {
+        CustomMessageConfig config = new CustomMessageConfig();
+        CardAttachment attachment = new CardAttachment();
+        name = NimUserInfoCache.getInstance().getUserName(id);
+        attachment.setParams(type, name, imgPath, id);
+        IMMessage message = MessageBuilder.createCustomMessage(sessionId, sessionTypeEnum, "[名片] " + name, attachment, config);
+        sendMessageSelf(message, onSendMessageListener, false);
     }
 
     void revokMessage(IMMessage message) {
@@ -874,24 +889,21 @@ public class SessionService {
 
         appendPushConfig(message);
         //update_by_sin
-//         if (sessionTypeEnum == SessionTypeEnum.P2P) {
-//             sessionName = NimUserInfoCache.getInstance().getUserName(sessionId);
-
-
-//             isFriend = NIMClient.getService(FriendService.class).isMyFriend(sessionId);
-//             LogUtil.w(TAG, "isFriend:" + isFriend);
-//             if (!isFriend) {
-
-//                 message.setStatus(MsgStatusEnum.fail);
-//                 CustomMessageConfig config = new CustomMessageConfig();
-//                 config.enablePush = false;
-//                 config.enableUnreadCount = false;
-//                 message.setConfig(config);
-//                 getMsgService().saveMessageToLocal(message, true);
-//                 sendTipMessage(sessionName + "开启了朋友验证，你还不是他(她)朋友。请先发送朋友验证请求，对方验证后，才能聊天。发送朋友验证", null, true, false);
-//                 return;
-//             }
-//         }
+        if (sessionTypeEnum == SessionTypeEnum.P2P) {
+                sessionName = NimUserInfoCache.getInstance().getUserName(sessionId);
+                isFriend = NIMClient.getService(FriendService.class).isMyFriend(sessionId);
+                LogUtil.w(TAG, "isFriend:" + isFriend);
+                if (!isFriend) {
+                    message.setStatus(MsgStatusEnum.fail);
+                    CustomMessageConfig config = new CustomMessageConfig();
+                    config.enablePush = false;
+                    config.enableUnreadCount = false;
+                    message.setConfig(config);
+                    getMsgService().saveMessageToLocal(message, true);
+                    sendTipMessage(sessionName + "开启了朋友验证，你还不是他(她)朋友。请先发送朋友验证请求，对方验证后，才能聊天。发送朋友验证", null, true, false);
+                    return;
+                }
+        }
         getMsgService().sendMessage(message, resend).setCallback(new RequestCallback<Void>() {
             @Override
             public void onSuccess(Void aVoid) {
@@ -950,7 +962,7 @@ public class SessionService {
         MemberPushOption memberPushOption = new MemberPushOption();
         memberPushOption.setForcePush(true);
 //        memberPushOption.setForcePushContent(message.getContent());
-        memberPushOption.setForcePushContent("有人@了你");
+        memberPushOption.setForcePushContent("@了你");
         memberPushOption.setForcePushList(selectedMembers);
         return memberPushOption;
     }

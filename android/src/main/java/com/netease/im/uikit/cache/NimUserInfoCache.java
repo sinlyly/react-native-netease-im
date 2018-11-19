@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * 用户资料数据缓存，适用于用户体系使用网易云信用户资料托管
@@ -53,6 +54,7 @@ public class NimUserInfoCache {
      * 从云信服务器获取用户信息（重复请求处理）[异步]
      */
     public void getUserInfoFromRemote(final String account, final RequestCallback<NimUserInfo> callback) {
+
         if (TextUtils.isEmpty(account)) {
             return;
         }
@@ -72,13 +74,14 @@ public class NimUserInfoCache {
 
         List<String> accounts = new ArrayList<>(1);
         accounts.add(account);
-
+        //final CountDownLatch latch = new CountDownLatch(1);
         NIMClient.getService(UserService.class).fetchUserInfo(accounts).setCallback(new RequestCallbackWrapper<List<NimUserInfo>>() {
 
             @Override
             public void onResult(int code, List<NimUserInfo> users, Throwable exception) {
                 if (exception != null && callback != null) {
                     callback.onException(exception);
+                   // latch.countDown();
                     return;
                 }
 
@@ -100,10 +103,15 @@ public class NimUserInfoCache {
                         }
                     }
                 }
-
                 requestUserInfoMap.remove(account);
+              //  latch.countDown();
             }
         });
+//        try {
+//            latch.await();
+//        }catch (Exception e){
+//            LogUtil.e(TAG, "latch await has exception!");
+//        }
     }
 
     /**
@@ -224,7 +232,7 @@ public class NimUserInfoCache {
         if (userInfo != null && !TextUtils.isEmpty(userInfo.getName())) {
             return userInfo.getName();
         } else {
-            return account;
+            return "";
         }
     }
 

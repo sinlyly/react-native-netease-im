@@ -92,12 +92,13 @@ RCT_EXPORT_MODULE()
 RCT_EXPORT_METHOD(login:(nonnull NSString *)account token:(nonnull NSString *)token
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject){
-    //请将 NIMMyAccount 以及 NIMMyToken 替换成您自己提交到此App下的账号和密码
+    NSLog(@"%@",@"********** is in  imLogin method");
     [[NIMSDK sharedSDK].loginManager login:account token:token completion:^(NSError *error) {
         if (!error) {
             resolve(account);
+            NSLog(@"%@",@"************* imLogin success");
         }else{
-            NSString *strEorr = @"登录失败";
+            NSString *strEorr = @"********** imLogin failed";
             reject(@"-1",strEorr, nil);
             NSLog(@"%@:%@",strEorr,error);
         }
@@ -395,6 +396,7 @@ RCT_EXPORT_METHOD(sendRedPacketMessage:(NSString *)type comments:(NSString *)com
     [[ConversationViewController initWithConversationViewController] sendRedPacketMessage:type comments:comments serialNo:serialNo];
 }
 
+
 //发送拆红包消息
 RCT_EXPORT_METHOD(sendRedPacketOpenMessage:(NSString *)sendId hasRedPacket:(NSString *)hasRedPacket serialNo:(NSString *)serialNo){
     [[ConversationViewController initWithConversationViewController] sendRedPacketOpenMessage:sendId hasRedPacket:hasRedPacket serialNo:serialNo];
@@ -407,6 +409,11 @@ RCT_EXPORT_METHOD(sendBankTransferMessage:(NSString *)amount comments:(NSString 
 //发送名片消息
 RCT_EXPORT_METHOD(sendCardMessage:(NSString *)type name:(NSString *)name imgPath:(NSString *)imgPath sessionId:(NSString *)sessionId){
     [[ConversationViewController initWithConversationViewController] sendCardMessage:type sessionId:sessionId name:name imgPath:imgPath];
+}
+
+//发送文件消息
+RCT_EXPORT_METHOD(sendFileMessage:(NSString *)filePath name:(NSString *)name){
+    [[ConversationViewController initWithConversationViewController] sendFileMessage:filePath name:name];
 }
 
 //发送提醒消息

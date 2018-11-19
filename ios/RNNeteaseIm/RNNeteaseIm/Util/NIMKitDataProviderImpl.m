@@ -69,7 +69,7 @@
     NIMSessionType sessionType = session.sessionType;
     NIMKitInfo *info = [[NIMKitInfo alloc] init];
     info.infoId = userId;
-    info.showName = userId; //默认值
+    info.showName = @""; //默认值
     switch (sessionType) {
         case NIMSessionTypeP2P:
         case NIMSessionTypeTeam:
@@ -89,7 +89,8 @@
             {
                 info.showName = name;
             }
-            info.avatarUrlString = userInfo.thumbAvatarUrl;
+            //update_by_sin
+            info.avatarUrlString = userInfo.avatarUrl;
             info.avatarImage = self.defaultUserAvatar;
             
             if (userInfo == nil)
@@ -108,10 +109,68 @@
     
     if (needFetchInfo)
     {
+//        dispatch_group_t group = dispatch_group_create();
+//        dispatch_group_enter(group);
+//        NSLog(@"***********methodSync 开始");
+//        [[NIMSDK sharedSDK].userManager fetchUserInfos:@[userId]
+//                                            completion:^(NSArray *users, NSError *error) {
+//                                                if (!error) {
+//                                                    [[NIMKit sharedKit] notfiyUserInfoChanged:@[userId]];
+//                                                }
+//                                                NSLog(@"***********methodSync completion");
+//                                                dispatch_group_leave(group);
+//                                            }];
+//        dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
+//        NSLog(@"************methodSync 结束");
+//        return [self infoByUserNotNeedRequest:userId session:session option:option];
         [self.request requestUserIds:@[userId]];
     }
     return info;
 }
+
+
+- (NIMKitInfo *)infoByUserNotNeedRequest:(NSString *)userId
+                   session:(NIMSession *)session
+                    option:(NIMKitInfoFetchOption *)option
+{
+    NIMSessionType sessionType = session.sessionType;
+    NIMKitInfo *info = [[NIMKitInfo alloc] init];
+    info.infoId = userId;
+    info.showName = @""; //默认值
+    switch (sessionType) {
+        case NIMSessionTypeP2P:
+        case NIMSessionTypeTeam:
+        {
+            NIMUser *user = [[NIMSDK sharedSDK].userManager userInfo:userId];
+            NIMUserInfo *userInfo = user.userInfo;
+            NIMTeamMember *member = nil;
+            if (sessionType == NIMSessionTypeTeam)
+            {
+                member = [[NIMSDK sharedSDK].teamManager teamMember:userId
+                                                             inTeam:session.sessionId];
+            }
+            NSString *name = [self nickname:user
+                                 memberInfo:member
+                                     option:option];
+            if (name)
+            {
+                info.showName = name;
+            }
+            //update_by_sin
+            info.avatarUrlString = userInfo.avatarUrl;
+            info.avatarImage = self.defaultUserAvatar;
+        }
+            break;
+        case NIMSessionTypeChatroom:
+            NSAssert(0, @"invalid type"); //聊天室的Info不会通过这个回调请求
+            break;
+        default:
+            NSAssert(0, @"invalid type");
+            break;
+    }
+    return info;
+}
+
 
 - (NIMKitInfo *)infoByTeam:(NSString *)teamId option:(NIMKitInfoFetchOption *)option
 {
@@ -120,7 +179,8 @@
     info.showName    = team.teamName;
     info.infoId      = teamId;
     info.avatarImage = self.defaultTeamAvatar;
-    info.avatarUrlString = team.thumbAvatarUrl;
+    //update_by_sin
+    info.avatarUrlString = team.avatarUrl;
     return info;
 }
 

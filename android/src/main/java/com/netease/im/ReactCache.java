@@ -35,6 +35,7 @@ import com.netease.nimlib.sdk.friend.FriendService;
 import com.netease.nimlib.sdk.friend.model.AddFriendNotify;
 import com.netease.nimlib.sdk.msg.MsgService;
 import com.netease.nimlib.sdk.msg.attachment.AudioAttachment;
+import com.netease.nimlib.sdk.msg.attachment.FileAttachment;
 import com.netease.nimlib.sdk.msg.attachment.ImageAttachment;
 import com.netease.nimlib.sdk.msg.attachment.LocationAttachment;
 import com.netease.nimlib.sdk.msg.attachment.MsgAttachment;
@@ -56,6 +57,7 @@ import com.netease.nimlib.sdk.team.model.TeamMember;
 import com.netease.nimlib.sdk.uinfo.model.NimUserInfo;
 import com.netease.nimlib.sdk.uinfo.model.UserInfo;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -936,6 +938,8 @@ public class ReactCache {
                     videoDic.putString(MessageConstant.MediaFile.WIDTH, Integer.toString(videoAttachment.getWidth()));
                     videoDic.putString(MessageConstant.MediaFile.DURATION, Long.toString(videoAttachment.getDuration()));
                     videoDic.putString(MessageConstant.MediaFile.SIZE, Long.toString(videoAttachment.getSize()));
+                    //update_by_sin
+                    //com.netease.nimlib.r.a.a(videoAttachment.getPath(), videoAttachment.getThumbPathForSave());
 
                     videoDic.putString(MessageConstant.MediaFile.THUMB_PATH, videoAttachment.getThumbPath());
                 }
@@ -949,13 +953,23 @@ public class ReactCache {
                     locationObj.putString(MessageConstant.Location.ADDRESS, locationAttachment.getAddress());
                 }
                 itemMap.putMap(MESSAGE_EXTEND, locationObj);
+            } else if(item.getMsgType() == MsgTypeEnum.file){
+                WritableMap fileDic = Arguments.createMap();
+                if (attachment instanceof FileAttachment) {
+                    FileAttachment fileAttachment = (FileAttachment) attachment;
+                    fileDic.putString(MessageConstant.File.NAME, fileAttachment.getDisplayName());
+                    fileDic.putString(MessageConstant.File.PATH, fileAttachment.getUrl());
+                    fileDic.putString(MessageConstant.File.SIZE, getFileSizeString(fileAttachment.getSize()));
+                    fileDic.putString(MessageConstant.File.EXT,fileAttachment.getExtension());
+                }
+                itemMap.putMap(MESSAGE_EXTEND, fileDic);
             } else if (item.getMsgType() == MsgTypeEnum.notification) {
                 if (item.getSessionType() == SessionTypeEnum.Team) {
                     text = TeamNotificationHelper.getTeamNotificationText(item, item.getSessionId());
                 } else {
                     text = item.getContent();
                 }
-            } else if (item.getMsgType() == MsgTypeEnum.custom) {//自定义消息
+            } else if (item.getMsgType() == MsgTypeEnum.custom) {
                 try {
                     CustomAttachment customAttachment = (CustomAttachment) attachment;
 
@@ -1064,5 +1078,36 @@ public class ReactCache {
         result.putString("transferred", Long.toString(attachmentProgress.getTransferred()));
 
         return result;
+    }
+
+    /**
+     * 获取文件大小换算的对应字符串
+     * @param fileSize
+     * @return
+     */
+    private static String getFileSizeString(long fileSize){
+        String fileSize_str = "0 KB";
+        if(fileSize != 0){
+            BigDecimal gb_size = new BigDecimal(1024 * 1024 * 1024);
+            BigDecimal mb_size = new BigDecimal(1024 * 1024 );
+            BigDecimal kb_size = new BigDecimal(1024);
+
+            BigDecimal fileSize_big = new BigDecimal(fileSize);
+
+            BigDecimal gb_divide = fileSize_big.divide(gb_size,2,BigDecimal.ROUND_HALF_UP);
+            BigDecimal mb_divide = fileSize_big.divide(mb_size,2,BigDecimal.ROUND_HALF_UP);
+            BigDecimal kb_divide = fileSize_big.divide(kb_size,BigDecimal.ROUND_HALF_UP);
+
+            if(gb_divide.doubleValue() > 1){
+                fileSize_str = gb_divide.toString() + " GB";
+            }else if(mb_divide.doubleValue()   > 1){
+                fileSize_str =  mb_divide.toString() + " MB";
+            }else if(kb_divide.doubleValue()  > 1){
+                fileSize_str = kb_divide.toString() + " KB";
+            }else {
+                fileSize_str = fileSize + " B";
+            }
+        }
+        return fileSize_str;
     }
 }
